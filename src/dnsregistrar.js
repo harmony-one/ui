@@ -1,20 +1,15 @@
-import { DNSProver } from '@ensdomains/dnsprovejs'
-import { Oracle } from '@ensdomains/dnssecoraclejs'
+import DnsProve from '@ensdomains/dnsprovejs'
+import dnsRegistrarContract from '@ensdomains/contracts/abis/dnsregistrar/DNSRegistrar.json'
 import packet from 'dns-packet'
-import { getProvider } from './web3'
+const abi = dnsRegistrarContract.abi;
 
 class Claim {
-  constructor({ oracle, registrar, isFound, result, textDomain, encodedName }) {
+  constructor({ oracle, registrar, result, textDomain, encodedName }) {
     this.oracle = oracle;
     this.registrar = registrar;
     this.result = result;
-    this.isFound = isFound;
     this.textDomain = textDomain;
     this.encodedName = encodedName;
-  }
-
-  async getProofData(){
-    return await this.oracle.getProofData(this.result);
   }
 
   /**
@@ -35,12 +30,9 @@ class Claim {
    * returns owner ETH address from the DNS record.
    */
   getOwner() {
-    if(this.result && this.result.answer){
-      return this.result.answer.records[0].data.toString()
+    return this.result.results[this.result.results.length - 1].rrs[0].data[0]
+      .toString()
       .split('=')[1];
-    }else{
-      return null
-    }
   }
 }
 
@@ -48,6 +40,7 @@ class DNSRegistrar {
   constructor(provider, oracleAddress) {
     this.provider = provider
     this.oracleAddress = oracleAddress
+    this.dnsprover = new DnsProve(provider);
   }
   /**
    * returns a claim object which allows you to claim
@@ -56,14 +49,13 @@ class DNSRegistrar {
    * @param {string} name - name of the domain you want to claim
    */
   async claim(name) {
-    const encodedName = '0x' + packet.name.encode(name).toString('hex');
-    const textDomain = '_ens.' + name;
-    const prover = DNSProver.create("https://cloudflare-dns.com/dns-query")
-    const provider = await getProvider()
+    let encodedName = '0x' + packet.name.encode(name).toString('hex');
+    let textDomain = '_ens.' + name;
+    let result = await this.dnsprover.lookup('TXT', textDomain);
+    let oracle = await this.dnsprover.getOracle(this.oracleAddress);
     return new Claim({
-      oracle: new Oracle(this.oracleAddress, provider),
-      result: (await prover.queryWithProof('TXT', textDomain)),
-      isFound:true,
+      oracle: oracle,
+      result: result,
       registrar: this.registrar,
       textDomain: textDomain,
       encodedName: encodedName

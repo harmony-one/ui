@@ -69,14 +69,14 @@ test('test isEncodedLabelhash', () => {
 test('test isDecrypted', () => {
   expect(
     isDecrypted(
-      '[663072b30dcab381fd7418a1cbe2746c2dd42d79b3d0982109e624ff5d8d1d8d].eth'
+      '[663072b30dcab381fd7418a1cbe2746c2dd42d79b3d0982109e624ff5d8d1d8d].one'
     )
   ).toBe(false)
 
-  expect(isDecrypted('arachnid.eth')).toBe(true)
+  expect(isDecrypted('arachnid.one')).toBe(true)
 
-  expect(isDecrypted('eth')).toBe(true)
-  expect(isDecrypted('super.vitalik.eth')).toBe(true)
+  expect(isDecrypted('one')).toBe(true)
+  expect(isDecrypted('super.vitalik.one')).toBe(true)
   expect(
     isDecrypted(
       'arachnid.[4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0]'
@@ -90,7 +90,7 @@ test('test isDecrypted', () => {
 })
 
 test('test labelhash', () => {
-  expect(labelhash('eth')).toBe(
+  expect(labelhash('one')).toBe(
     '0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0'
   )
 

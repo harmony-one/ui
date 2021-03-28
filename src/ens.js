@@ -66,6 +66,9 @@ const contracts = {
   },
   5: {
     registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+  },
+  1666700000: {
+    registry: '0x000007D5dA8734D8B689626007A992054dDD78Bb'
   }
 }
 
@@ -517,7 +520,7 @@ export class ENS {
 
   async createSubdomain(name) {
     const account = await getAccount()
-    const publicResolverAddress = await this.getAddress('resolver.eth')
+    const publicResolverAddress = await this.getAddress('resolver.one')
     try {
       return this.setSubnodeRecord(name, account, publicResolverAddress)
     } catch (e) {
@@ -545,7 +548,7 @@ export class ENS {
     const networkId = await getNetworkId()
 
     if (parseInt(networkId) > 1000) {
-      const gasLimit = await reverseRegistrar.estimateGas.setName(name)
+      const gasLimit = await reverseRegistrar.estimate.setName(name)
       overrides = {
         gasLimit: gasLimit.toNumber() * 2,
         ...overrides

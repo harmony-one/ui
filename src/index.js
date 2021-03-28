@@ -18,6 +18,7 @@ export async function setupENS({
     enforceReload,
     infura
   })
+
   const networkId = await getNetworkId()
   const ens = new ENS({ provider, networkId, registryAddress: ensAddress })
   const registrar = await setupRegistrar(ens.registryAddress)

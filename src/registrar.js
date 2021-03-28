@@ -26,7 +26,6 @@ import { namehash } from './utils/namehash'
 
 import { interfaces } from './constants/interfaces'
 import { isEncodedLabelhash, labelhash } from './utils/labelhash'
-import { utils } from 'ethers'
 
 const {
   legacyRegistrar: legacyRegistrarInterfaceId,
@@ -257,17 +256,18 @@ export default class Registrar {
       const networkId = await getNetworkId()
       if (parseInt(networkId) > 1000) {
         /* if private network */
-        const gas = await Registrar.estimateGas["safeTransferFrom(address,address,uint256)"](
+        const gas = await Registrar.estimate.safeTransferFrom(
           account,
           to,
           labelHash
         )
+
         overrides = {
           ...overrides,
           gasLimit: gas.toNumber() * 2
         }
       }
-      return Registrar["safeTransferFrom(address,address,uint256)"](account, to, labelHash, overrides)
+      return Registrar.safeTransferFrom(account, to, labelHash, overrides)
     } catch (e) {
       console.log('Error calling transferOwner', e)
     }
@@ -283,7 +283,7 @@ export default class Registrar {
       const networkId = await getNetworkId()
       if (parseInt(networkId) > 1000) {
         /* if private network */
-        const gas = await Registrar.estimateGas.reclaim(labelHash, address)
+        const gas = await Registrar.estimate.reclaim(labelHash, address)
 
         overrides = {
           ...overrides,
@@ -332,7 +332,7 @@ export default class Registrar {
       signer
     )
     const account = await getAccount()
-    const resolverAddr = await this.getAddress('resolver.eth')
+    const resolverAddr = await this.getAddress('resolver.one')
     if (parseInt(resolverAddr, 16) === 0) {
       return permanentRegistrarController.makeCommitment(name, owner, secret)
     } else {
@@ -359,6 +359,8 @@ export default class Registrar {
   }
 
   async commit(label, secret = '') {
+    debugger;
+
     const permanentRegistrarControllerWithoutSigner = this
       .permanentRegistrarController
     const signer = await getSigner()
@@ -366,6 +368,7 @@ export default class Registrar {
       signer
     )
     const account = await getAccount()
+
     const commitment = await this.makeCommitment(label, account, secret)
 
     return permanentRegistrarController.commit(commitment)
@@ -381,38 +384,16 @@ export default class Registrar {
     const account = await getAccount()
     const price = await this.getRentPrice(label, duration)
     const priceWithBuffer = getBufferedPrice(price)
-    const resolverAddr = await this.getAddress('resolver.eth')
+    const resolverAddr = await this.getAddress('resolver.one')
     if (parseInt(resolverAddr, 16) === 0) {
-      const gasLimit = await this.estimateGasLimit(() => {
-        return permanentRegistrarController.estimateGas.register(
-          label,
-          account,
-          duration,
-          secret,
-          { value:priceWithBuffer}
-        )
-      })
-  
       return permanentRegistrarController.register(
         label,
         account,
         duration,
         secret,
-        { value: priceWithBuffer, gasLimit }
+        { value: priceWithBuffer }
       )
     } else {
-      const gasLimit = await this.estimateGasLimit(() => {
-        return permanentRegistrarController.estimateGas.registerWithConfig(
-          label,
-          account,
-          duration,
-          secret,
-          resolverAddr,
-          account,
-          { value:priceWithBuffer}
-        )
-      })
-
       return permanentRegistrarController.registerWithConfig(
         label,
         account,
@@ -420,7 +401,7 @@ export default class Registrar {
         secret,
         resolverAddr,
         account,
-        { value: priceWithBuffer, gasLimit }
+        { value: priceWithBuffer }
       )
     }
   }
@@ -430,7 +411,7 @@ export default class Registrar {
     try{
       gas = (await cb()).toNumber()
     }catch(e){
-      let matched = e.message.match(/\(supplied gas (.*)\)/)
+      let matched = e.message.match(/err: insufficient funds for transfer \(supplied gas (.*)\)/)
       if(matched){
         gas = parseInt(matched[1])
       }
@@ -449,7 +430,7 @@ export default class Registrar {
     const price = await this.getRentPrice(label, duration)
     const priceWithBuffer = getBufferedPrice(price)
     const gasLimit = await this.estimateGasLimit(() => {
-      return permanentRegistrarController.estimateGas.renew(label, duration, { value:priceWithBuffer})
+      return permanentRegistrarController.estimate.renew(label, duration, { value:priceWithBuffer})
     })
     return permanentRegistrarController.renew(label, duration, { value: priceWithBuffer, gasLimit })
   }
@@ -464,7 +445,7 @@ export default class Registrar {
     const prices = await this.getRentPrices(labels, duration)
     const pricesWithBuffer = getBufferedPrice(prices)
     const gasLimit = await this.estimateGasLimit(() => {
-      return bulkRenewal.estimateGas.renewAll(labels, duration, { value:pricesWithBuffer})
+      return bulkRenewal.estimate.renewAll(labels, duration, { value:pricesWithBuffer})
     })
     return bulkRenewal.renewAll(
       labels,
@@ -497,7 +478,7 @@ export default class Registrar {
 
   async getDNSEntry(name, parentOwner, owner) {
     // Do not cache as it needs to be refetched on "Refresh"
-    const dnsRegistrar = {stateError:null}
+    const dnsRegistrar = {}
     const web3Provider = getLegacyProvider()
     const provider = await getProvider()
     const registrarContract = await getDnsRegistrarContract({parentOwner, provider})
@@ -508,25 +489,25 @@ export default class Registrar {
       const result = claim.getResult()
       dnsRegistrar.claim = claim
       dnsRegistrar.result = result
-      if (claim && claim.isFound) {
+      if (result.found) {
         dnsRegistrar.dnsOwner = claim.getOwner()
-        if (!dnsRegistrar.dnsOwner || parseInt(dnsRegistrar.dnsOwner) === 0) {
-          // Empty
-          dnsRegistrar.state = 8
-        } else if(!utils.isAddress(dnsRegistrar.dnsOwner)){
-          // Invalid record
+        if (!dnsRegistrar.dnsOwner) {
+          // DNS Record is invalid
           dnsRegistrar.state = 4
-        } else if (
-          !owner || dnsRegistrar.dnsOwner.toLowerCase() === owner.toLowerCase()
-        ) {
-          // Ready to register
-          dnsRegistrar.state = 5
         } else {
-          // Out of sync
-          dnsRegistrar.state = 6
+          // Valid reacord is found
+          if (
+            !owner ||
+            dnsRegistrar.dnsOwner.toLowerCase() === owner.toLowerCase()
+          ) {
+            dnsRegistrar.state = 5
+            // Out of sync
+          } else {
+            dnsRegistrar.state = 6
+          }
         }
       } else {
-        if (claim && claim.nsec) {
+        if (result.nsec) {
           if (result.results.length === 4) {
             // DNS entry does not exist
             dnsRegistrar.state = 1
@@ -544,14 +525,12 @@ export default class Registrar {
     } catch (e) {
       console.log('Problem fetching data from DNS', e)
       // Problem fetching data from DNS
-      dnsRegistrar.stateError = e.message
       dnsRegistrar.state = 0
     }
     return dnsRegistrar
   }
 
   async submitProof(name, parentOwner) {
-    let gasLimit
     const provider = await getProvider()
     const { claim, result } = await this.getDNSEntry(name, parentOwner)
     const registrarWithoutSigner = await getDnsRegistrarContract({
@@ -560,15 +539,12 @@ export default class Registrar {
     })
     const signer = await getSigner()
     const registrar = registrarWithoutSigner.connect(signer)
-    const { data, proof } = await claim.getProofData()
-
-    if(data.length === 0){
-      return registrar.claim(claim.encodedName, proof)
-    }else{
-      gasLimit = await registrar.estimateGas.proveAndClaim(
-        claim.encodedName, data, proof
-      )  
-      return registrar.proveAndClaim(claim.encodedName, data, proof)
+    const data = await claim.oracle.getAllProofs(result, {})
+    const allProven = await claim.oracle.allProven(result)
+    if (allProven) {
+      return registrar.claim(claim.encodedName, data[1])
+    } else {
+      return registrar.proveAndClaim(claim.encodedName, data[0], data[1])
     }
   }
 
@@ -602,7 +578,7 @@ export default class Registrar {
 }
 
 async function getEthResolver(ENS) {
-  const resolverAddr = await ENS.resolver(namehash('eth'))
+  const resolverAddr = await ENS.resolver(namehash('one'))
   const provider = await getProvider()
   return getResolverContract({ address: resolverAddr, provider })
 }
@@ -612,19 +588,19 @@ export async function setupRegistrar(registryAddress) {
   const ENS = getENSContract({ address: registryAddress, provider })
   const Resolver = await getEthResolver(ENS)
 
-  let ethAddress = await ENS.owner(namehash('eth'))
+  let ethAddress = await ENS.owner(namehash('one'))
 
   let controllerAddress = await Resolver.interfaceImplementer(
-    namehash('eth'),
+    namehash('one'),
     permanentRegistrarInterfaceId
   )
   let legacyAuctionRegistrarAddress = await Resolver.interfaceImplementer(
-    namehash('eth'),
+    namehash('one'),
     legacyRegistrarInterfaceId
   )
 
   let bulkRenewalAddress = await Resolver.interfaceImplementer(
-    namehash('eth'),
+    namehash('one'),
     bulkRenewalInterfaceId
   )
 

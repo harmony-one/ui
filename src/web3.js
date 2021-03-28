@@ -10,7 +10,7 @@ let requested = false
 let address
 
 function getDefaultProvider() {
-  legacyProvider = new Web3(getNetworkProviderUrl(1))
+  legacyProvider = new Web3(getNetworkProviderUrl())
   return new ethers.getDefaultProvider('homestead')
 }
 
@@ -45,11 +45,13 @@ export async function setupWeb3({
   if(enforceReadOnly){
     readOnly = true
     address = null
-    if(infura){
-      provider = getInfuraProvider(infura)
-    }else{
-      provider = getDefaultProvider()
-    }
+
+    provider = getJsonRpcProvider(getNetworkProviderUrl())
+    // if(infura){
+    //   provider = getInfuraProvider(infura)
+    // }else{
+    //   provider = getDefaultProvider()
+    // }
     return { provider, signer:undefined }
   }
 
@@ -166,7 +168,7 @@ export function getNetworkProviderUrl(id) {
     case '5':
       return `https://goerli.infura.io/v3/90f210707d3c450f847659dc9a3436ea`
     default:
-      return `https://mainnet.infura.io/v3/90f210707d3c450f847659dc9a3436ea`
+      return `https://api.s0.b.hmny.io`
   }
 }
 

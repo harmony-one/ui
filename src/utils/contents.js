@@ -1,11 +1,10 @@
 import contentHash from '@ensdomains/content-hash'
 import { utils } from 'ethers'
-const supportedCodecs = ['ipns-ns', 'ipfs-ns', 'swarm-ns', 'onion', 'onion3', 'skynet-ns']
+import bs58 from 'bs58'
+const supportedCodecs = ['ipns-ns', 'ipfs-ns', 'swarm-ns', 'onion', 'onion3']
 
 function matchProtocol(text){
-  return text.match(/^(ipfs|sia|ipns|bzz|onion|onion3):\/\/(.*)/)
-    || text.match(/\/(ipfs)\/(.*)/)
-    || text.match(/\/(ipns)\/(.*)/)
+  return text.match(/^(ipfs|ipns|bzz|onion|onion3):\/\/(.*)/) || text.match(/\/(ipfs)\/(.*)/) || text.match(/\/(ipns)\/(.*)/)
 }
 
 export function decodeContenthash(encoded) {
@@ -32,8 +31,6 @@ export function decodeContenthash(encoded) {
         protocolType = 'onion'
       } else if (codec === 'onion3') {
         protocolType = 'onion3'
-      } else if (codec === 'skynet-ns') {
-        protocolType = 'sia'
       } else {
         decoded = encoded
       }
@@ -75,6 +72,7 @@ export function getProtocolType(encoded) {
 }
 
 export function encodeContenthash(text) {
+  console.log('***encodeContenthash')
   let content, contentType
   let encoded = false
   let error  
@@ -102,10 +100,6 @@ export function encodeContenthash(text) {
       } else if (contentType === 'onion3') {
         if(content.length == 56) {
           encoded = '0x' + contentHash.encode('onion3', content);  
-        }
-      } else if (contentType === 'sia'){
-        if(content.length == 46) {
-          encoded = '0x' + contentHash.encode('skynet-ns', content);
         }
       } else {
         console.warn('Unsupported protocol or invalid value', {
