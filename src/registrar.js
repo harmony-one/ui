@@ -254,19 +254,19 @@ export default class Registrar {
       const signer = await getSigner()
       const Registrar = permanentRegistrar.connect(signer)
       const networkId = await getNetworkId()
-      if (parseInt(networkId) > 1000) {
-        /* if private network */
-        const gas = await Registrar.estimate.safeTransferFrom(
-          account,
-          to,
-          labelHash
-        )
-
-        overrides = {
-          ...overrides,
-          gasLimit: gas.toNumber() * 2
-        }
-      }
+      // if (parseInt(networkId) > 1000) {
+      //   /* if private network */
+      //   const gas = await Registrar.estimate.safeTransferFrom(
+      //     account,
+      //     to,
+      //     labelHash
+      //   )
+      //
+      //   overrides = {
+      //     ...overrides,
+      //     gasLimit: gas.toNumber() * 2
+      //   }
+      // }
       return Registrar.safeTransferFrom(account, to, labelHash, overrides)
     } catch (e) {
       console.log('Error calling transferOwner', e)
@@ -281,15 +281,15 @@ export default class Registrar {
       const signer = await getSigner()
       const Registrar = permanentRegistrar.connect(signer)
       const networkId = await getNetworkId()
-      if (parseInt(networkId) > 1000) {
-        /* if private network */
-        const gas = await Registrar.estimate.reclaim(labelHash, address)
-
-        overrides = {
-          ...overrides,
-          gasLimit: gas.toNumber() * 2
-        }
-      }
+      // if (parseInt(networkId) > 1000) {
+      //   /* if private network */
+      //   const gas = await Registrar.estimate.reclaim(labelHash, address)
+      //
+      //   overrides = {
+      //     ...overrides,
+      //     gasLimit: gas.toNumber() * 2
+      //   }
+      // }
 
       return Registrar.reclaim(labelHash, address, {
         ...overrides
@@ -432,7 +432,7 @@ export default class Registrar {
     const gasLimit = await this.estimateGasLimit(() => {
       return permanentRegistrarController.estimate.renew(label, duration, { value:priceWithBuffer})
     })
-    return permanentRegistrarController.renew(label, duration, { value: priceWithBuffer, gasLimit })
+    return permanentRegistrarController.renew(label, duration, { value: priceWithBuffer, gasLimit: 6721900, gasPrice: 1000000000 })
   }
 
   async renewAll(labels, duration) {
@@ -590,10 +590,13 @@ export async function setupRegistrar(registryAddress) {
 
   let ethAddress = await ENS.owner(namehash('one'))
 
-  let controllerAddress = await Resolver.interfaceImplementer(
-    namehash('one'),
-    permanentRegistrarInterfaceId
-  )
+  // let controllerAddress = await Resolver.interfaceImplementer(
+  //   namehash('one'),
+  //   permanentRegistrarInterfaceId
+  // )
+
+  let controllerAddress = await Resolver.['addr(bytes32)'](namehash('controller.one'))
+
   let legacyAuctionRegistrarAddress = await Resolver.interfaceImplementer(
     namehash('one'),
     legacyRegistrarInterfaceId

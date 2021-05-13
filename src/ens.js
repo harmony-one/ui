@@ -55,20 +55,23 @@ function getLabelhash(label) {
 }
 
 const contracts = {
-  1: {
-    registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-  },
-  3: {
-    registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-  },
-  4: {
-    registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-  },
-  5: {
-    registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-  },
+  // 1: {
+  //   registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+  // },
+  // 3: {
+  //   registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+  // },
+  // 4: {
+  //   registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+  // },
+  // 5: {
+  //   registry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+  // },
   1666700000: {
-    registry: '0xcc884532A32ACB5f3219942A7f396e064FAaD979'
+    registry: '0x23ca23b6f2C40BF71fe4Da7C5d6396EE2C018e6A'
+  },
+  1666600000: {
+    registry: '0x3fa4135B88cE1035Fed373F0801118a3340B37e7'
   }
 }
 
@@ -547,13 +550,13 @@ export class ENS {
     const reverseRegistrar = reverseRegistrarWithoutSigner.connect(signer)
     const networkId = await getNetworkId()
 
-    if (parseInt(networkId) > 1000) {
-      const gasLimit = await reverseRegistrar.estimate.setName(name)
-      overrides = {
-        gasLimit: gasLimit.toNumber() * 2,
-        ...overrides
-      }
-    }
+    // if (parseInt(networkId) > 1000) {
+    //   const gasLimit = await reverseRegistrar.estimate.setName(name)
+    //   overrides = {
+    //     gasLimit: gasLimit.toNumber() * 2,
+    //     ...overrides
+    //   }
+    // }
 
     return reverseRegistrar.setName(name, overrides)
   }
